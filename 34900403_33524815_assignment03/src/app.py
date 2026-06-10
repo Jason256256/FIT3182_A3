@@ -98,7 +98,7 @@ def update_live_graph(n, selected_filter):
         query['total_violations_today'] = {'$gte': 10}
     
     # Fetch latest data stream from MongoDB summary collection
-    cursor = violations.find().sort("max_speed_recorded", -1).limit(10)
+    cursor = violations.find(query).sort("max_speed_recorded", -1).limit(10)
     data = list(cursor)
     print(f"!!! DEBUG: Found {len(data)} documents in MongoDB !!!")
     
