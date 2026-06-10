@@ -1,9 +1,9 @@
 #!/bin/bash
 
-echo "Booting up stream producer..."
-# Adjust the python file name if yours is named differently (e.g., producer.py)
-python3 "../../src/traffic_producer.py" &
+echo "Booting up stream producer notebook..."
+# Executes the producer notebook cell-by-cell in the background
+jupyter nbconvert --to notebook --execute "../../src/34900403_33524815_producer_a_b_c.ipynb" &
 
-echo "Submitting PySpark Structured Streaming cluster job..."
-# Adjust the streaming script path to match your exact file name
-spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.mongodb.spark:mongo-spark-connector_2.12:10.2.0 "../../src/spark_streaming.py"
+echo "Submitting PySpark Structured Streaming notebook..."
+# Executes the streaming notebook cell-by-cell
+jupyter nbconvert --to notebook --execute "../../src/34900403_33524815_data_design_streaming.ipynb"
