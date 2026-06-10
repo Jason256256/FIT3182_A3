@@ -14,6 +14,14 @@ Press CTRL+C to quit
 #click on the http://127.0.0.1:8050/, it will take you to the website.
 #profit.
 
+# Before running any of the code below, run this on the terminal:
+# pip3 install pandas
+
+# Additionally only run this after running the spark streaming ipynb file
+# and the kafka producers file, the go to the terminal, set the working
+# directory to the src folder and type in "python3 app.py" or "python app.py",
+# depending on which device you're using.
+
 # 1. Force the typing fix before doing anything
 import typing
 import typing_extensions
@@ -25,7 +33,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 # Configure Host IP
-hostip = "192.168.1.108"
+hostip = "localhost"
 client = MongoClient(hostip, 27017)
 db = client.a2_db
 violations = db.violations_daily_summary
@@ -81,8 +89,9 @@ app.layout = html.Div([
 )
 def update_live_graph(n, selected_filter):
     # Fetch latest data stream from MongoDB summary collection
-    cursor = violations.find().sort("timestamp_end", -1).limit(10)
+    cursor = violations.find().sort("max_speed_recorded", -1).limit(10)
     data = list(cursor)
+    print(f"!!! DEBUG: Found {len(data)} documents in MongoDB !!!")
     
     if not data:
         return px.bar(title="Waiting for Spark Streaming Data Ingestion...")
