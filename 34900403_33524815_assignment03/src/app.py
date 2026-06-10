@@ -28,8 +28,6 @@ import typing_extensions
 typing_extensions.Generic = typing.Generic
 
 # 2. Base network and connection setup
-import os
-from datetime import datetime
 from pymongo import MongoClient
 
 # Configure Host IP
@@ -39,8 +37,6 @@ db = client.a2_db
 violations = db.violations_daily_summary
 
 # 3. Now try the imports—Dash will no longer crash on typing_extensions
-import plotly
-import plotly.graph_objects as go
 import plotly.express as px
 
 import dash
@@ -64,6 +60,9 @@ app.layout = html.Div([
             id='traffic-filter-dropdown',
             options=[
                 {'label': 'All Live Violations', 'value': 'SPEED'},
+                {'label': 'High-Speed Offenders (>140 km/h)', 'value': 'SPEED_HIGH'},
+                {'label': 'Extreme Speed / Reckless (>160 km/h)', 'value': 'SPEED_EXTREME'},
+                {'label': 'Chronic Serial Offenders (10+ Infractions)', 'value': 'CHRONIC_OFFENDERS'}
             ],
             value='SPEED',
             clearable=False
@@ -88,6 +87,16 @@ app.layout = html.Div([
      Input('traffic-filter-dropdown', 'value')]
 )
 def update_live_graph(n, selected_filter):
+    query = {}
+    if selected_filter == 'SPEED_HIGH':
+        query['max_speed_recorded'] = {'$gt': 140}
+        
+    elif selected_filter == 'SPEED_EXTREME':
+        query['max_speed_recorded'] = {'$gt': 160}
+        
+    elif selected_filter == 'CHRONIC_OFFENDERS':
+        query['total_violations_today'] = {'$gte': 10}
+    
     # Fetch latest data stream from MongoDB summary collection
     cursor = violations.find().sort("max_speed_recorded", -1).limit(10)
     data = list(cursor)
