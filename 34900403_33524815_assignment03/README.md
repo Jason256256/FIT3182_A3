@@ -16,7 +16,7 @@ Applied Session: Friday 2PM-4PM
 │   ├── 34900403_33524815_producer_a_b_c.ipynb         # Kafka traffic stream event producer
 │   └── 34900403_33524815_data_design_streaming.ipynb  # PySpark Structured Streaming engine
 └── README.md                        # Deployment manual and advanced engineering brief
-
+```
 # Core Dependencies and Automated Setup
 ## System prerequisites
 - Docker Desktop installed and running (Windows or MacOS)
@@ -27,39 +27,46 @@ Run the Bash command line anywhere in the terminal:
 For Windows, the command line is: 
 ```text
 pip install numpy pymongo plotly dash pandas jupyter nbconvert
-
+```
 For MacOS, the command line is:
 ```text
 pip3 install numpy pymongo plotly dash pandas jupyter nbconvert
-
+```
 # End-to-End Operational Execution Guide
+## Ensuring a Clean State for Ingestion Testing
+If you wish to wipe out historical records from previous development runs and test the real-time pipeline from a completely empty database slate, execute the following command at the project root directory *before* starting Step 1:
+```bash
+docker compose -f deployment/config/docker-compose.yml down -v
+```
 ## Step 1: Provide the Infrastructure
 Run the following Bash commands in the terminal to launch the containerized cluster engines and automatically initialise the require message broker topics:
 ```text
 cd deployment/scripts
 chmod +x *.sh
 ./start_infra_scr1.sh
-
+```
 Note: The first of these commands is dependent on where your terminal is in the working directory; you may need to run more cd commands to ensure you reach the scripts directory
 ## Step 2: Launch the Data Streaming Pipeline
 Once the infrastructure outputs a successful handshake, trigger the cell-by-cell Jupyter pipeline wrapper by running:
 ```text
 ./pipeline_launch_scr2.sh
-
+```
 ## Step 3: Launch the Dashboard
 Keep the first terminal window running and open a new terminal window. Navigate to the source directory and ignite the Dash web platform:
 The below line to navigate to the source directory depends on where your terminal is in the working directory
 ```text
 cd ../../src
-
+```
 For Windows, the command line to ignite Dash is:
 ```text
 python app.py
-
+```
 For MacOS, the command line to ignite Dash is:
 ```text
 python3 app.py
-
+```
 ## Step 4: Access the live visualisation
 Find any browser such as Google Chrome, Microsoft Edge, Safari or etc and type "http://127.0.0.1:8050/", which would present the live visualisation in real-time
+
+# End-to-End Operational Execution Guide
 [[TBW]]
