@@ -1,0 +1,7 @@
+FROM quay.io/jupyter/pyspark-notebook:spark-3.5.1
+
+# Pre-bake extra Python dependencies into the image at build time.
+# This means the container starts instantly every time — no pip install on each run.
+# To add more packages later, add them here and rebuild with:
+#   docker-compose build jupyter-pyspark
+RUN pip install --no-cache-dir kafka-python pymongo findspark papermill

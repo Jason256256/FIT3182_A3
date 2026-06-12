@@ -17,6 +17,16 @@ Applied Session: Friday 2PM-4PM
 │   └── 34900403_33524815_data_design_streaming.ipynb  # PySpark Structured Streaming engine
 └── README.md                        # Deployment manual and advanced engineering brief
 ```
+# Added files
+### Files from A2
+- 34900403_33524815_data_design_streaming.ipynb 
+- 34900403_33524815_producer_a_b_c.ipynb
+### Files from A3
+- docker-compose.yml
+- start_infra_scr1.sh
+- pipeline_launch_scr2.sh
+- app.py
+
 # Core Dependencies and Automated Setup
 ### System prerequisites
 - Docker Desktop installed and running (Windows or MacOS)
@@ -34,22 +44,40 @@ pip3 install numpy pymongo plotly dash pandas jupyter nbconvert
 ```
 # End-to-End Operational Execution Guide
 ### Ensuring a Clean State for Ingestion Testing
-If you wish to wipe out historical records from previous development runs and test the real-time pipeline from a completely empty database slate, execute the following command at the project root directory *before* starting Step 1:
+If you wish to wipe out historical records from previous development runs and test the real-time pipeline from a completely empty database slate, execute the following command at the project root directory(folder where deployment folder is in, 34900403_33524815_assignment03) *before* starting Step 1:
 ```bash
 docker compose -f deployment/config/docker-compose.yml down -v
 ```
+
+### step 0: if you are running for the first time:
+Run this following command in bash shell:
+```bash
+docker-compose -f deployment/config/docker-compose.yml build
+```
+According to claude AI, this is to build the custom jupyter image. It may take some time, mine took almost 3 minutes(179.9s)
+
 ### Step 1: Provide the Infrastructure
+Ensure docker desktop is running in background first.
+
 Run the following Bash commands in the terminal to launch the containerized cluster engines and automatically initialise the required message broker topics:
 ```bash
-cd deployment/scripts
+cd ./deployment/scripts
 chmod +x *.sh
 ./start_infra_scr1.sh
 ```
 Note: The first of these commands is dependent on where your terminal is in the working directory; you may need to run more cd commands to ensure you reach the scripts directory
+
+Troubleshooting tip:
+if you get an error like this:
+" -bash: ./start_infra_scr1.sh: /bin/bash^M: bad interpreter: No such file or directory"
+Chage the CRLF at the bottom right of both .sh files to LF. That should resolve the issue due to how the files end lines.
+
 ### Step 2: Launch the Data Streaming Pipeline
 Once the infrastructure outputs a successful handshake, trigger the cell-by-cell Jupyter pipeline wrapper by running:
 ```bash
 ./pipeline_launch_scr2.sh
+
+debugging tip: if errors mentioning query or batches missing appears, delete the checkpoints folder
 ```
 ### Step 3: Launch the Dashboard
 Keep the first terminal window running and open a new terminal window. Navigate to the source directory and ignite the Dash web platform:
@@ -65,6 +93,8 @@ For MacOS, the command line to ignite Dash is:
 ```bash
 python3 app.py
 ```
+
+note: if python app.py does not work in bash on windows, try python3 app.py
 ### Step 4: Access the live visualisation
 Find any browser such as Google Chrome, Microsoft Edge, Safari or etc and type "http://127.0.0.1:8050/", which would present the live visualisation in real-time
 

@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
     ports:
@@ -16,17 +16,56 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      # Verify the broker is actually accepting connections before jupyter starts
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
   mongodb:
-    image: mongo:latest
+    # Pinned to 7.0 — mongo:latest can silently pull breaking major versions
+    image: mongo:7.0
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
+  jupyter-pyspark:
+    # Built from local Dockerfile to pre-bake kafka3 + pymongo at image build time,
+    # so the container starts fast on every run instead of pip-installing each time
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    ports:
+      - "8888:8888"
+    environment:
+      # Point notebooks at the internal Docker network listener (not localhost:9092)
+      # Use this env var inside your notebooks: os.environ['KAFKA_BOOTSTRAP_SERVERS']
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MONGO_URI: mongodb://mongodb:27017
+      # Automatically patches kafka3.vendor.six on every Python process in the container,
+      # including notebook kernels — not just the one python3 -c call in the old script
+      PYTHONSTARTUP: /home/jovyan/fix_kafka3.py
+      # Disable token auth so nbconvert can execute notebooks non-interactively
+      JUPYTER_TOKEN: ""
+    volumes:
+      # Your notebooks in src/ on the host map to /home/jovyan/work inside the container
+      - ../../:/home/jovyan/work
+      # The kafka3 fix shim is mounted read-only alongside the notebooks
+      - ./fix_kafka3.py:/home/jovyan/fix_kafka3.py:ro
+    command: start-notebook.sh --NotebookApp.token=''
 
 volumes:
   mongo_data:

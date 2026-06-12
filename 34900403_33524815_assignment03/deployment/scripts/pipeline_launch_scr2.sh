@@ -1,20 +1,69 @@
 #!/bin/bash
 
-# Navigate to the project root directory context
-cd "$(dirname "$0")/../../src"
+# Resolve the running jupyter-pyspark container
+JUPYTER_CONTAINER=$(docker ps -q --filter name=jupyter-pyspark --filter status=running)
 
-echo "Patching Python runtime environments..."
-# 1. Fix the Python 3.14 + kafka3 vendor crash via dynamic module aliasing
-python3 -c "import sys, six; sys.modules['kafka3.vendor.six'] = six; sys.modules['kafka3.vendor.six.moves'] = six.moves"
+if [ -z "$JUPYTER_CONTAINER" ]; then
+  echo "ERROR: jupyter-pyspark container is not running."
+  echo "Please run start_infra_scr1.sh first, then retry."
+  exit 1
+fi
 
-# 2. Automatically point PySpark to the internal OpenJDK instance inside Docker 
-# to completely bypass the local Mac "Unable to locate a Java Runtime" error
-export JAVA_HOME=$(docker exec $(docker ps -q --filter name=kafka) printenv JAVA_HOME 2>/dev/null)
+echo "=== Pipeline execution starting inside container: $JUPYTER_CONTAINER ==="
+echo ""
 
-echo "Booting up stream producer notebook..."
-jupyter nbconvert --to notebook --execute 34900403_33524815_producer_a_b_c.ipynb --InPlace &
+# The kafka3/six vendor fix is already applied automatically via PYTHONSTARTUP
+# inside the container — no host-side Python call needed here.
 
-echo "Submitting PySpark Structured Streaming notebook..."
-jupyter nbconvert --to notebook --execute 34900403_33524815_data_design_streaming.ipynb --InPlace &
+# Notebooks live at /home/jovyan/work/ inside the container,
+# which maps to ./src/ on your host (defined in docker-compose.yml volumes).
 
-echo "Pipeline triggered successfully!"
+echo "[1/2] Executing PySpark Structured Streaming notebook..."
+docker exec "$JUPYTER_CONTAINER" \
+  papermill \
+  /home/jovyan/work/src/34900403_33524815_data_design_streaming.ipynb \
+  /home/jovyan/work/src/34900403_33524815_data_design_streaming.ipynb \
+  --execution-timeout 600 &
+STREAMING_PID=$!
+
+echo "Waiting 15 seconds for Spark to initialize before starting producer..."
+sleep 15
+
+echo "[2/2] Executing stream producer notebook..."
+docker exec "$JUPYTER_CONTAINER" \
+  papermill \
+  /home/jovyan/work/src/34900403_33524815_producer_a_b_c.ipynb \
+  /home/jovyan/work/src/34900403_33524815_producer_a_b_c.ipynb \
+  --execution-timeout 300 &
+PRODUCER_PID=$!
+
+# Wait for both to finish
+wait $STREAMING_PID
+STREAMING_EXIT=$?
+wait $PRODUCER_PID
+PRODUCER_EXIT=$?
+
+echo ""
+echo "=== Pipeline execution complete ==="
+
+# Report outcome of each notebook clearly
+if [ $PRODUCER_EXIT -eq 0 ]; then
+  echo "  [OK]  producer_a_b_c notebook finished successfully"
+else
+  echo "  [FAIL] producer_a_b_c notebook exited with code $PRODUCER_EXIT"
+  echo "         Check the notebook for error cells, or run:"
+  echo "         docker logs $JUPYTER_CONTAINER"
+fi
+
+if [ $STREAMING_EXIT -eq 0 ]; then
+  echo "  [OK]  data_design_streaming notebook finished successfully"
+else
+  echo "  [FAIL] data_design_streaming notebook exited with code $STREAMING_EXIT"
+  echo "         Check the notebook for error cells, or run:"
+  echo "         docker logs $JUPYTER_CONTAINER"
+fi
+
+# Exit with failure if either notebook failed
+if [ $PRODUCER_EXIT -ne 0 ] || [ $STREAMING_EXIT -ne 0 ]; then
+  exit 1
+fi
