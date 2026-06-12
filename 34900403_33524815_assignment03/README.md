@@ -8,6 +8,8 @@ Applied Session: Friday 2PM-4PM
 ├── deployment/
 │   ├── config/
 │   │   └── docker-compose.yml       # Standardized multi-container orchestration config
+|   |   └── Dockerfile.jupyter
+|   |   └── fix_kafka3.py
 │   └── scripts/
 │       ├── start_infra_scr1.sh      # Shell script to initiate infrastructure & Kafka topics
 │       └── pipeline_launch_scr2.sh  # Shell script to initiate streaming pipeline headlessly
@@ -23,6 +25,8 @@ Applied Session: Friday 2PM-4PM
 - 34900403_33524815_producer_a_b_c.ipynb
 ### Files from A3
 - docker-compose.yml
+- Dockerfile.jupyter
+- fix_kafka3.py
 - start_infra_scr1.sh
 - pipeline_launch_scr2.sh
 - app.py
@@ -36,11 +40,11 @@ Applied Session: Friday 2PM-4PM
 Run the Bash command line anywhere in the terminal:
 For Windows, the command line is: 
 ```bash
-pip install numpy pymongo plotly dash pandas jupyter nbconvert
+pip install numpy pymongo plotly dash pandas jupyter
 ```
 For MacOS, the command line is:
 ```bash
-pip3 install numpy pymongo plotly dash pandas jupyter nbconvert
+pip3 install numpy pymongo plotly dash pandas jupyter
 ```
 # End-to-End Operational Execution Guide
 ### Ensuring a Clean State for Ingestion Testing
@@ -54,7 +58,7 @@ Run this following command in bash shell:
 ```bash
 docker-compose -f deployment/config/docker-compose.yml build
 ```
-According to claude AI, this is to build the custom jupyter image. It may take some time, mine took almost 3 minutes(179.9s)
+According to Claude AI, this is to build the custom jupyter image. It may take some time, mine took almost 3 minutes(179.9s)
 
 ### Step 1: Provide the Infrastructure
 Ensure docker desktop is running in background first.
@@ -93,8 +97,7 @@ For MacOS, the command line to ignite Dash is:
 ```bash
 python3 app.py
 ```
-
-note: if python app.py does not work in bash on windows, try python3 app.py
+troubleshooting tip: if python app.py does not work in bash on windows, try python3 app.py
 ### Step 4: Access the live visualisation
 Find any browser such as Google Chrome, Microsoft Edge, Safari or etc and type "http://127.0.0.1:8050/", which would present the live visualisation in real-time
 
